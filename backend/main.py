@@ -15,8 +15,8 @@ app.add_middleware(
 
 @app.get("/")
 async def root():
-    return {"message": "Hello World"}
+    return {"message": "sup world"}
 
-@app.post("/create-rap")
-async def create_rap(file: UploadFile = File(...)):
-    return {"message": "Rap created"}
+@app.post("/create-yap")
+async def create_yap(file: UploadFile = File(...)):
+    return {"message": "Yap created"}
