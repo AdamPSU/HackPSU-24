@@ -33,6 +33,23 @@ client = Client(
 
 @app.post("/transcribe-audio/")
 async def transcribe_audio_endpoint(file: UploadFile = File(...)):
+    """
+    FastAPI endpoint to handle audio file uploads and return transcriptions.
+
+    This async function receives an audio file upload, saves it temporarily,
+    transcribes it using the transcribe_audio function, and returns the
+    slangified transcription as a JSON response.
+
+    Args:
+        file (UploadFile): The uploaded audio file.
+
+    Returns:
+        JSONResponse: A JSON object containing the slangified transcription.
+
+    Raises:
+        HTTPException: 500 status code if any error occurs during processing.
+    """
+
     try:
         # Save the uploaded audio file temporarily
         audio_path = f"./{file.filename}"
@@ -53,11 +70,31 @@ async def transcribe_audio_endpoint(file: UploadFile = File(...)):
 
 
 class TTSRequest(BaseModel):
+    """Defines the structure for TTS requests."""
+
     text: str
 
 
 @app.post("/generate-audio/")
 async def generate_audio(request: TTSRequest):
+    """
+    FastAPI endpoint to generate audio from text using Text-to-Speech (TTS).
+
+    This async function receives a TTSRequest containing text, generates audio using
+    a TTS client, and returns the audio as a streaming response.
+
+    Args:
+        request (TTSRequest): A Pydantic model containing the text to be converted to speech.
+
+    Returns:
+        StreamingResponse: An audio stream of the generated speech in MP3 format.
+
+    Raises:
+        HTTPException:
+            - 400 status code if no text is provided in the request.
+            - 500 status code if audio generation fails.
+    """
+
     text = request.text
 
     if not text:
