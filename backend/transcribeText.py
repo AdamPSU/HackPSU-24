@@ -21,23 +21,53 @@ warnings.filterwarnings("ignore", category=UserWarning)
 model = whisper.load_model("tiny", device="cpu")
 gpt_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-GENZ_SLANGS = "mid, rizz, peak, prime, GOAT, alpha, sigma,cap, no cap, Ws in the chat, W, L, Lit, Ick, It's giving, Baddie, Period, Ohio, Slay, Flex, Big Yikes, Bop, Yikes, Bet, gimme, Sus, fanum tax, Gyat, Bussin, lowkey, crap, Delulu, Ate, Mogged, Ate"
+GENZ_SLANG = "mid, rizz, peak, prime, GOAT, alpha, sigma,cap, no cap, Ws in the chat, W, L, Lit, Ick, It's giving, Baddie, Period, Ohio, Slay, Flex, Big Yikes, Bop, Yikes, Bet, gimme, Sus, fanum tax, Gyat, Bussin, lowkey, crap, Delulu, Ate, Mogged, Ate"
 
 
 # Main function to handle the transcription process
 def transcribe_audio(file):
-    """Transcribes the given audio file."""
+    """
+    Transcribe an audio file and convert the transcription to Gen-Alpha slang.
+
+    This function first transcribes the given audio file using a speech-to-text model,
+    then converts the transcription into a slangified version using the text_to_slang function.
+
+    Args:
+        file: The audio file to be transcribed (format depends on the transcription model used).
+
+    Returns:
+        str: A slangified version of the audio transcription, condensed and translated into Gen-Alpha slang.
+    """
+
     lecture_text = model.transcribe(file)
-    final_transcription = text_to_slang(lecture_text["text"])
+    slang_lecture_text = text_to_slang(lecture_text["text"])
 
 
-    return final_transcription
+    return slang_lecture_text
     
 def text_to_slang(lecture_text):
+    """
+    Convert a lecture text into a summarized, slangified version using Gen-Alpha slang.
+
+    This function takes a lecture text, summarizes it using GPT-4, and then converts
+    the summary into Gen-Alpha slang. The slangified version is condensed to
+    approximately one-third of the original lecture's reading time.
+
+    Args:
+        lecture_text (str): The original lecture text to be summarized and slangified.
+
+    Returns:
+        str: A condensed, slangified version of the original lecture text.
+
+    Note:
+        - The function uses GPT-4 twice: for summarization and slangification.
+        - The slangified output prohibits emojis and newlines.
+        - The temperature for slangification is set to 0.7 for creative output.
+    """
 
     summary_messages = [
-        {"role": "system", "content": "You will provide thorough summaries of lectures."},
-        {"role": "user", "content": f"Please summarize this text: \n\n {lecture_text}"}
+        {"role": "system", "content": "You provide thorough summaries of lectures."},
+        {"role": "user", "content": f"Summarize this text. Include all major topics and subtopics. \n\n {lecture_text}"}
     ]
 
     summary_completion = gpt_client.chat.completions.create(
@@ -52,7 +82,7 @@ def text_to_slang(lecture_text):
 
     # Now, use the summary in the main task
     messages = [
-        {"role": "system", "content": "Your gotta translate lecture into gen-alpha slang.RULES: no emojis, no newlines, try to use these words \n\n " + GENZ_SLANGS + "" },
+        {"role": "system", "content": "Translate summaries into gen-Z slang. RULES: no emojis, no newlines, and try to use these words: \n\n " + GENZ_SLANG},
         {"role": "user", "content": f"Here's a summary of the lecture: {summary} \n\n Now, provide a {time_constraint}-second slangified lecture."}
     ]
 
@@ -76,8 +106,6 @@ if __name__ == '__main__':
 
     audio_path = sys.argv[1]
     transcription = transcribe_audio(audio_path)
-    print(transcription)
-
 
 
 
