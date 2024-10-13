@@ -1,11 +1,14 @@
-from fastapi import FastAPI, Response
+from fastapi import FastAPI, File, UploadFile, HTTPException
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pyht import Client
 from pyht.client import TTSOptions
 from dotenv import load_dotenv
+from transcribeText import transcribe_audio
 import os
 import io
+
 
 load_dotenv()
 
@@ -25,6 +28,27 @@ client = Client(
     user_id=os.getenv("PLAY_HT_USER_ID"),
     api_key=os.getenv("PLAY_HT_API_KEY"),
 )
+
+@app.post("/transcribe-audio/")
+async def transcribe_audio_endpoint(file: UploadFile = File(...)):
+    try:
+        # Save the uploaded audio file temporarily
+        audio_path = f"./{file.filename}"
+        with open(audio_path, "wb") as audio_file:
+            audio_file.write(await file.read())
+
+        # Call the transcribe_audio function from transcribedText.py
+        transcription = transcribe_audio(audio_path)
+
+        # Clean up the saved audio file
+        os.remove(audio_path)
+
+        # Return the transcription as a JSON response
+        return JSONResponse({"transcription": transcription})
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 @app.post("/generate-audio/")
 async def generate_audio():
