@@ -1,7 +1,15 @@
+from fastapi import FastAPI, Response
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi import FastAPI
+from fastapi.responses import StreamingResponse
+from pyht import Client
+from pyht.client import TTSOptions
+from dotenv import load_dotenv
+import os
+import io
+
+load_dotenv()
+
 app = FastAPI()
-from fastapi import File, UploadFile
 
 origins = ["*"]
 
@@ -13,10 +21,31 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.get("/")
-async def root():
-    return {"message": "Hello World"}
+client = Client(
+    user_id=os.getenv("PLAY_HT_USER_ID"),
+    api_key=os.getenv("PLAY_HT_API_KEY"),
+)
 
-@app.post("/create-rap")
-async def create_rap(file: UploadFile = File(...)):
-    return {"message": "Rap created"}
+@app.post("/generate-audio/")
+async def generate_audio():
+    # Define the text and options
+    text = "So, Kiwan Maeng kicks off the lecture by chatting 'bout the current homework grind,"
+    options = TTSOptions(
+       # voice="s3://voice-cloning-zero-shot/37e5af8b-800a-4a76-8f31-4203315f8a9e/billysaad/manifest.json",
+        voice="s3://voice-cloning-zero-shot/8218bea1-aad9-49cc-95b3-e9234e28d4a6/wilbursaad/manifest.json",
+        speed=1.0,
+        temperature=0.5,
+    )
+    
+    # Create an in-memory buffer to hold the audio
+    audio_buffer = io.BytesIO()
+
+    # Generate the audio and write to the buffer
+    for chunk in client.tts(text, options):
+        audio_buffer.write(chunk)
+    
+    # Reset buffer position to the beginning
+    audio_buffer.seek(0)
+
+    # Send the audio back to the frontend as a streaming response
+    return StreamingResponse(audio_buffer, media_type="audio/mpeg")
