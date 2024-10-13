@@ -1,9 +1,11 @@
-from fastapi import FastAPI, Response
+from fastapi import FastAPI, File, UploadFile, HTTPException
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pyht import Client
 from pyht.client import TTSOptions
 from dotenv import load_dotenv
+from transcribeText import transcribe_audio
 import os
 import io
 
