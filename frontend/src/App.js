@@ -1,18 +1,18 @@
 import "./App.css";
 import { useState } from "react";
+import background_image from "./background_image.png";
+import lip from "./lip.gif";
 
 function App() {
-  const [selectedFile, setSelectedFile] = useState(null); // Store the selected file
-  const [transcription, setTranscription] = useState(""); // Store the transcription result
-  const [loading, setLoading] = useState(false); // Manage loading state
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [transcription, setTranscription] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  // Handle file selection for transcription
   const handleFileChange = (event) => {
     setSelectedFile(event.target.files[0]);
-    setTranscription(""); // Reset transcription when a new file is selected
+    setTranscription("");
   };
 
-  // Upload the audio file and get the transcription from the backend
   const handleTranscribeAudio = async () => {
     if (!selectedFile) {
       alert("Please select an audio file first!");
@@ -20,10 +20,10 @@ function App() {
     }
 
     const formData = new FormData();
-    formData.append("file", selectedFile); // Append file to FormData
+    formData.append("file", selectedFile);
 
     try {
-      setLoading(true); // Start loading
+      setLoading(true);
       const response = await fetch("http://localhost:8000/transcribe-audio/", {
         method: "POST",
         body: formData,
@@ -34,42 +34,14 @@ function App() {
       }
 
       const result = await response.json();
-      setTranscription(result.transcription); // Set transcription result
+      setTranscription(result.transcription); // Store the transcription result
     } catch (error) {
       console.error("Error:", error);
       alert("An error occurred while transcribing the audio.");
     } finally {
-      setLoading(false); // Stop loading
+      setLoading(false);
     }
   };
-
-  // Play audio streamed from the backend
-  async function playAudioFromStream(stream) {
-    try {
-      const reader = stream.getReader();
-      let chunks = [];
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        chunks.push(value);
-      }
-
-      const blob = new Blob(chunks, { type: "audio/mpeg" });
-      const url = URL.createObjectURL(blob);
-      const audio = new Audio(url);
-
-      // Ensure playback according to browser autoplay policies
-      await audio.play().catch((error) => {
-        console.error("Autoplay error:", error);
-        alert("Please interact with the page to play audio.");
-      });
-    } catch (error) {
-      console.error("Error streaming audio:", error);
-    }
-  }
-
-  // Send a request to generate rap audio using the transcription text
   const handleCreateRap = async () => {
     if (!transcription) {
       alert("No transcription available to create rap!");
@@ -82,7 +54,7 @@ function App() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ text: transcription }), // Send transcription dynamically
+        body: JSON.stringify({ text: transcription }),
       });
 
       if (!response.ok) {
@@ -90,7 +62,10 @@ function App() {
         throw new Error(`Error: ${errorDetail.detail}`);
       }
 
-      playAudioFromStream(response.body);
+      const blob = await response.blob();
+      const audioURL = URL.createObjectURL(blob);
+      const audio = new Audio(audioURL);
+      await audio.play();
     } catch (error) {
       console.error("Error generating rap audio:", error);
       alert(`Failed to generate audio: ${error.message}`);
@@ -99,24 +74,39 @@ function App() {
 
   return (
     <div className="App">
-      <div className="container">
-        <h1>Upload Audio File for Transcription</h1>
-        <input type="file" onChange={handleFileChange} accept="audio/*" />
-        <button onClick={handleTranscribeAudio} disabled={loading}>
-          {loading ? "Transcribing..." : "Transcribe Audio"}
-        </button>
+      {/* Background Image */}
+      <div className="background-container">
+        <img src={background_image} alt="Background" />
       </div>
 
-      {transcription && (
-        <div className="transcription-result">
-          <h2>Transcription:</h2>
-          <p>{transcription}</p>
-        </div>
-      )}
+      <h1 className="page-title">Professor GenZ!</h1>
 
-      <div className="container">
-        <h1>Create Rap Audio</h1>
-        <button onClick={handleCreateRap}>Create Rap</button>
+      {/* Lip GIF Section */}
+      <div className="lip-container">
+        <img src={lip} alt="Lip" />
+      </div>
+
+      {/* Main App Content */}
+      <div className="app-container">
+        <div className="container">
+          <h1>Upload Your Borin Lecture!</h1>
+          <input type="file" onChange={handleFileChange} accept="audio/*" />
+          <button onClick={handleTranscribeAudio} disabled={loading}>
+            {loading ? "Professor Genz is Thinking" : "Slangify"}
+          </button>
+        </div>
+
+        <div className="container">
+          <h1>Hold Up Let Me Cook!</h1>
+          <button onClick={handleCreateRap}>Make It Yap</button>
+        </div>
+        {/* Transcription Output */}
+        {transcription && (
+          <div className="transcription-container">
+            <h2>Transcription Output:</h2>
+            <p>{transcription}</p>
+          </div>
+        )}
       </div>
     </div>
   );
