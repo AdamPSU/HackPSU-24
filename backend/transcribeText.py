@@ -4,62 +4,67 @@ import warnings
 from pydub import AudioSegment
 from concurrent.futures import ProcessPoolExecutor
 import os
-import tempfile
-from fastapi import UploadFile
+from dotenv import load_dotenv
+from openai import OpenAI
 
-# Disable SSL verification
+load_dotenv()
+
+
+# # Disable SSL verification
 ssl._create_default_https_context = ssl._create_unverified_context
 
-# Suppress warnings
+# # Suppress warnings
 warnings.filterwarnings("ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=UserWarning)
 
-# Load the Whisper model once to avoid reloading it multiple times
+# # Load the Whisper model once to avoid reloading it multiple times
 model = whisper.load_model("tiny", device="cpu")
+gpt_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-# Function to split audio into chunks
-def split_audio(file, chunk_length_ms=60000, overlap_ms=5000):
-    """Splits the audio file into chunks with optional overlap."""
-    audio = AudioSegment.from_file(file)
-    return [audio[i:i + chunk_length_ms] for i in range(0, len(audio), chunk_length_ms)]
+GENZ_SLANGS = "mid, rizz, peak, prime, GOAT, alpha, sigma,cap, no cap, Ws in the chat, W, L, Lit, Ick, It's giving, Baddie, Period, Ohio, Slay, Flex, Big Yikes, Bop, Yikes, Bet, gimme, Sus, fanum tax, Gyat, Bussin, lowkey, crap, Delulu, Ate, Mogged, Ate"
 
-# Function to transcribe a single audio chunk
-def transcribe_chunk(chunk, index):
-    """Transcribes a chunk with Whisper."""
-    chunk_path = f"chunk_{index}.mp3"
-    chunk.export(chunk_path, format="mp3")
-
-    if len(chunk) == 0:
-        print(f"Skipping empty chunk {index}")
-        return ""
-
-    print(f"Transcribing chunk {index}...")
-    result = model.transcribe(chunk_path)
-    
-    # Clean up the temporary chunk file
-    os.remove(chunk_path)
-    
-    return result["text"]
 
 # Main function to handle the transcription process
 def transcribe_audio(file):
     """Transcribes the given audio file."""
-    # Split the audio into chunks
-    print("Splitting audio into chunks...")
-    chunks = split_audio(file)
+    lecture_text = model.transcribe(file)
+    final_transcription = text_to_slang(lecture_text["text"])
 
-    # Transcribe all chunks in parallel
-    print("Transcribing... This may take a while.")
-    with ProcessPoolExecutor() as executor:
-        futures = [executor.submit(transcribe_chunk, chunk, i) for i, chunk in enumerate(chunks)]
-        results = [future.result() for future in futures]
 
-    # Combine all transcriptions
-    final_transcription = " ".join(results)
-
-    # Return the final transcription
     return final_transcription
     
+def text_to_slang(lecture_text):
+
+    summary_messages = [
+        {"role": "system", "content": "You will provide thorough summaries of lectures."},
+        {"role": "user", "content": f"Please summarize this text: \n\n {lecture_text}"}
+    ]
+
+    summary_completion = gpt_client.chat.completions.create(
+        model="gpt-4",
+        messages=summary_messages
+    )
+
+    summary = summary_completion.choices[0].message.content
+
+    reading_time_seconds = len(lecture_text) / 16.67 # Obtain total read time of original lecture
+    time_constraint = reading_time_seconds / 3  # Condense to 1/3rd of the time
+
+    # Now, use the summary in the main task
+    messages = [
+        {"role": "system", "content": "Your gotta translate lecture into gen-alpha slang.RULES: no emojis, no newlines, try to use these words \n\n " + GENZ_SLANGS + "" },
+        {"role": "user", "content": f"Here's a summary of the lecture: {summary} \n\n Now, provide a {time_constraint}-second slangified lecture."}
+    ]
+
+    completion = gpt_client.chat.completions.create(
+        model="gpt-4",
+        messages=messages,
+        temperature=0.7
+    )
+
+    slangified_summary = completion.choices[0].message.content
+
+    return slangified_summary
 
 # Entry point to handle command-line execution or function call
 if __name__ == '__main__':
