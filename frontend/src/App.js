@@ -24,7 +24,7 @@ function App() {
 
     try {
       setLoading(true); // Start loading
-      const response = await fetch("http://localhost:8000/transcribe-audio", {
+      const response = await fetch("http://localhost:8000/transcribe-audio/", {
         method: "POST",
         body: formData,
       });
@@ -45,33 +45,56 @@ function App() {
 
   // Play audio streamed from the backend
   async function playAudioFromStream(stream) {
-    const reader = stream.getReader();
-    let chunks = [];
+    try {
+      const reader = stream.getReader();
+      let chunks = [];
 
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      chunks.push(value);
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        chunks.push(value);
+      }
+
+      const blob = new Blob(chunks, { type: "audio/mpeg" });
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+
+      // Ensure playback according to browser autoplay policies
+      await audio.play().catch((error) => {
+        console.error("Autoplay error:", error);
+        alert("Please interact with the page to play audio.");
+      });
+    } catch (error) {
+      console.error("Error streaming audio:", error);
     }
-
-    const blob = new Blob(chunks, { type: "audio/mpeg" });
-    const url = URL.createObjectURL(blob);
-    const audio = new Audio(url);
-    audio.play();
   }
 
-  // Send a request to generate rap audio from the backend
+  // Send a request to generate rap audio using the transcription text
   const handleCreateRap = async () => {
-    console.log("Create Rap");
-    await fetch("http://localhost:8000/generate-audio", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ text: "Hello World" }),
-    })
-      .then((response) => playAudioFromStream(response.body))
-      .catch((error) => console.error("Error:", error));
+    if (!transcription) {
+      alert("No transcription available to create rap!");
+      return;
+    }
+
+    try {
+      const response = await fetch("http://localhost:8000/generate-audio/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ text: transcription }), // Send transcription dynamically
+      });
+
+      if (!response.ok) {
+        const errorDetail = await response.json();
+        throw new Error(`Error: ${errorDetail.detail}`);
+      }
+
+      playAudioFromStream(response.body);
+    } catch (error) {
+      console.error("Error generating rap audio:", error);
+      alert(`Failed to generate audio: ${error.message}`);
+    }
   };
 
   return (

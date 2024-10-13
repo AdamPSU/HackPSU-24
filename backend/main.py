@@ -1,19 +1,19 @@
-from fastapi import FastAPI, File, UploadFile, HTTPException
-from fastapi.responses import JSONResponse
+from fastapi import FastAPI, File, UploadFile, HTTPException, Form, Body
+from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
 from pyht import Client
 from pyht.client import TTSOptions
 from dotenv import load_dotenv
 from transcribeText import transcribe_audio
+from pydantic import BaseModel
 import os
 import io
 
-#from transcription import transcribe_audio
 load_dotenv()
 
 app = FastAPI()
 
+# CORS setup for local development
 origins = ["*"]
 
 app.add_middleware(
@@ -24,6 +24,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Initialize TTS client
 client = Client(
     user_id=os.getenv("PLAY_HT_USER_ID"),
     api_key=os.getenv("PLAY_HT_API_KEY"),
@@ -37,7 +38,7 @@ async def transcribe_audio_endpoint(file: UploadFile = File(...)):
         with open(audio_path, "wb") as audio_file:
             audio_file.write(await file.read())
 
-        # Call the transcribe_audio function from transcribedText.py
+        # Call the transcribe_audio function from transcribeText.py
         transcription = transcribe_audio(audio_path)
 
         # Clean up the saved audio file
@@ -49,30 +50,40 @@ async def transcribe_audio_endpoint(file: UploadFile = File(...)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-def slang_to_audio():
-    # Define the text and options
-    text = "So, Kiwan Maeng kicks off the lecture by chatting 'bout the current homework grind,"
+
+class TTSRequest(BaseModel):
+    text: str
+
+
+@app.post("/generate-audio/")
+async def generate_audio(request: TTSRequest):
+    text = request.text
+
+    if not text:
+        raise HTTPException(status_code=400, detail="No text provided for audio generation")
+
+    # Define TTS options
     options = TTSOptions(
-       # voice="s3://voice-cloning-zero-shot/37e5af8b-800a-4a76-8f31-4203315f8a9e/billysaad/manifest.json",
         voice="s3://voice-cloning-zero-shot/8218bea1-aad9-49cc-95b3-e9234e28d4a6/wilbursaad/manifest.json",
         speed=1.0,
         temperature=0.5,
     )
-    # Create an in-memory buffer to hold the audio
-    audio_buffer = io.BytesIO()
 
-    # Generate the audio and write to the buffer
-    for chunk in client.tts(text, options):
-        audio_buffer.write(chunk)
-    
-    # Reset buffer position to the beginning
-    audio_buffer.seek(0)
+    try:
+        audio_buffer = io.BytesIO()
 
-    # Send the audio back to the frontend as a streaming response
-    return StreamingResponse(audio_buffer, media_type="audio/mpeg")
+        # Generate audio chunks from the TTS client
+        for chunk in client.tts(text, options):
+            audio_buffer.write(chunk)
 
-@app.post("/generate-audio/")
-async def generate_audio():
-    # Sumedhs func
-    # Text to slang 
-    return slang_to_audio()
+        audio_buffer.seek(0)  # Reset buffer to the start
+
+        # Return the audio as a streaming response
+        return StreamingResponse(audio_buffer, media_type="audio/mpeg")
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Audio generation failed: {str(e)}")
+
+
+
+

@@ -4,6 +4,8 @@ import warnings
 from pydub import AudioSegment
 from concurrent.futures import ProcessPoolExecutor
 import os
+import tempfile
+from fastapi import UploadFile
 
 # Disable SSL verification
 ssl._create_default_https_context = ssl._create_unverified_context
@@ -57,6 +59,7 @@ def transcribe_audio(file):
 
     # Return the final transcription
     return final_transcription
+    
 
 # Entry point to handle command-line execution or function call
 if __name__ == '__main__':
@@ -69,4 +72,7 @@ if __name__ == '__main__':
     audio_path = sys.argv[1]
     transcription = transcribe_audio(audio_path)
     print(transcription)
+
+
+
 
