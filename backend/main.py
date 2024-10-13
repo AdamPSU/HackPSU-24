@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 import os
 import io
 
+#from transcription import transcribe_audio
 load_dotenv()
 
 app = FastAPI()
@@ -26,8 +27,7 @@ client = Client(
     api_key=os.getenv("PLAY_HT_API_KEY"),
 )
 
-@app.post("/generate-audio/")
-async def generate_audio():
+def slang_to_audio():
     # Define the text and options
     text = "So, Kiwan Maeng kicks off the lecture by chatting 'bout the current homework grind,"
     options = TTSOptions(
@@ -36,7 +36,6 @@ async def generate_audio():
         speed=1.0,
         temperature=0.5,
     )
-    
     # Create an in-memory buffer to hold the audio
     audio_buffer = io.BytesIO()
 
@@ -49,3 +48,9 @@ async def generate_audio():
 
     # Send the audio back to the frontend as a streaming response
     return StreamingResponse(audio_buffer, media_type="audio/mpeg")
+
+@app.post("/generate-audio/")
+async def generate_audio():
+    # Sumedhs func
+    # Text to slang 
+    return slang_to_audio()
