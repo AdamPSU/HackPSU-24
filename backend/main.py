@@ -1,13 +1,15 @@
-from fastapi import FastAPI, Response
+from fastapi import FastAPI, File, UploadFile, HTTPException
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pyht import Client
 from pyht.client import TTSOptions
 from dotenv import load_dotenv
+from transcribeText import transcribe_audio
 import os
 import io
 
-#from transcription import transcribe_audio
+
 load_dotenv()
 
 app = FastAPI()
@@ -27,7 +29,29 @@ client = Client(
     api_key=os.getenv("PLAY_HT_API_KEY"),
 )
 
-def slang_to_audio():
+@app.post("/transcribe-audio/")
+async def transcribe_audio_endpoint(file: UploadFile = File(...)):
+    try:
+        # Save the uploaded audio file temporarily
+        audio_path = f"./{file.filename}"
+        with open(audio_path, "wb") as audio_file:
+            audio_file.write(await file.read())
+
+        # Call the transcribe_audio function from transcribedText.py
+        transcription = transcribe_audio(audio_path)
+
+        # Clean up the saved audio file
+        os.remove(audio_path)
+
+        # Return the transcription as a JSON response
+        return JSONResponse({"transcription": transcription})
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/generate-audio/")
+async def generate_audio():
     # Define the text and options
     text = "So, Kiwan Maeng kicks off the lecture by chatting 'bout the current homework grind,"
     options = TTSOptions(
@@ -36,6 +60,7 @@ def slang_to_audio():
         speed=1.0,
         temperature=0.5,
     )
+    
     # Create an in-memory buffer to hold the audio
     audio_buffer = io.BytesIO()
 
@@ -48,9 +73,3 @@ def slang_to_audio():
 
     # Send the audio back to the frontend as a streaming response
     return StreamingResponse(audio_buffer, media_type="audio/mpeg")
-
-@app.post("/generate-audio/")
-async def generate_audio():
-    # Sumedhs func
-    # Text to slang 
-    return slang_to_audio()
