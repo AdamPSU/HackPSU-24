@@ -21,7 +21,10 @@ warnings.filterwarnings("ignore", category=UserWarning)
 model = whisper.load_model("tiny", device="cpu")
 gpt_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-GENZ_SLANG = "mid, rizz, peak, prime, GOAT, alpha, sigma,cap, no cap, Ws in the chat, W, L, Lit, Ick, It's giving, Baddie, Period, Ohio, Slay, Flex, Big Yikes, Bop, Yikes, Bet, gimme, Sus, fanum tax, Gyat, Bussin, lowkey, crap, Delulu, Ate, Mogged, Ate"
+
+GENZ_SLANG = "mid, rizz, peak, prime, GOAT, alpha, sigma,cap, no cap, Ws in the chat, W, L, Lit, Ick, It's giving, Baddie, Period, Ohio, Slay, Flex, Big Yikes, Bop, Yikes, Bet, gimme, Sus, fanum tax, Gyat, Bussin, lowkey, crap, Delulu, Ate, Mogged, Ate, Gucci"
+
+
 
 
 # Main function to handle the transcription process
