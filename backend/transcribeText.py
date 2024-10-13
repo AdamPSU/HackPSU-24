@@ -1,46 +1,72 @@
 import whisper
 import ssl
 import warnings
-import os
 from pydub import AudioSegment
 from concurrent.futures import ProcessPoolExecutor
-import sys
+import os
 
-# Disable SSL verification and suppress warnings
+# Disable SSL verification
 ssl._create_default_https_context = ssl._create_unverified_context
+
+# Suppress warnings
 warnings.filterwarnings("ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=UserWarning)
 
+# Load the Whisper model once to avoid reloading it multiple times
 model = whisper.load_model("tiny", device="cpu")
 
-def transcribe_audio(file_path, chunk_length_ms=60000):
+# Function to split audio into chunks
+def split_audio(file, chunk_length_ms=60000, overlap_ms=5000):
+    """Splits the audio file into chunks with optional overlap."""
+    audio = AudioSegment.from_file(file)
+    return [audio[i:i + chunk_length_ms] for i in range(0, len(audio), chunk_length_ms)]
+
+# Function to transcribe a single audio chunk
+def transcribe_chunk(chunk, index):
+    """Transcribes a chunk with Whisper."""
+    chunk_path = f"chunk_{index}.mp3"
+    chunk.export(chunk_path, format="mp3")
+
+    if len(chunk) == 0:
+        print(f"Skipping empty chunk {index}")
+        return ""
+
+    print(f"Transcribing chunk {index}...")
+    result = model.transcribe(chunk_path)
     
-    def split_audio(file, chunk_length):
-        audio = AudioSegment.from_file(file)
-        return [audio[i:i + chunk_length] for i in range(0, len(audio), chunk_length)]
+    # Clean up the temporary chunk file
+    os.remove(chunk_path)
+    
+    return result["text"]
 
-    def transcribe_chunk(chunk, index):
-        chunk_path = f"chunk_{index}.mp3"
-        chunk.export(chunk_path, format="mp3")
+# Main function to handle the transcription process
+def transcribe_audio(file):
+    """Transcribes the given audio file."""
+    # Split the audio into chunks
+    print("Splitting audio into chunks...")
+    chunks = split_audio(file)
 
-        if len(chunk) == 0:
-            return ""  
-
-        result = model.transcribe(chunk_path)
-        os.remove(chunk_path)  
-        return result["text"]
-
-    # Split the audio file into chunks
-    chunks = split_audio(file_path, chunk_length_ms)
+    # Transcribe all chunks in parallel
+    print("Transcribing... This may take a while.")
     with ProcessPoolExecutor() as executor:
         futures = [executor.submit(transcribe_chunk, chunk, i) for i, chunk in enumerate(chunks)]
         results = [future.result() for future in futures]
 
-    # Combine and print the final transcription
+    # Combine all transcriptions
     final_transcription = " ".join(results)
-    print(final_transcription)
 
-# Entry point for command-line usage
+    # Return the final transcription
+    return final_transcription
+
+# Entry point to handle command-line execution or function call
 if __name__ == '__main__':
-    audio_path = sys.argv[1]  # Get audio file path from command line
-    transcribe_audio(audio_path)
+    import sys
+
+    if len(sys.argv) < 2:
+        print("Usage: python whisper_transcriber.py <audio_file>")
+        sys.exit(1)
+
+    audio_path = sys.argv[1]
+    transcription = transcribe_audio(audio_path)
+    print(transcription)
+
