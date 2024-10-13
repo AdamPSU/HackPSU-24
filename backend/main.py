@@ -30,6 +30,7 @@ client = Client(
     api_key=os.getenv("PLAY_HT_API_KEY"),
 )
 
+
 @app.post("/transcribe-audio/")
 async def transcribe_audio_endpoint(file: UploadFile = File(...)):
     try:
