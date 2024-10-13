@@ -3,7 +3,6 @@ import './App.css';
 function App() {
   async function playAudioFromStream(stream) {
     const reader = stream.getReader();
-  
     let chunks = [];
   
     while (true) {
@@ -19,7 +18,7 @@ function App() {
     const audio = new Audio(url);
     audio.play();
   }
-  
+
   const handleCreateRap = async () => {
     console.log("Create Rap")
     await fetch("http://localhost:8000/generate-audio", {
@@ -28,8 +27,7 @@ function App() {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({text: "Hello World"})
-    }
-    )
+    })
     .then(response => {
       playAudioFromStream(response.body)
     })
@@ -38,10 +36,10 @@ function App() {
   return (
     <div className="App">
       <div className="container">
-        <h1>Input File Upload</h1>
-        <input type="file"/>
-      </div>
-      <button onClick={handleCreateRap}>Create Rap</button>
+      <h1>Skibbidi Professor 🎤</h1>
+      <input type="file" id="fileInput" />
+      <button onClick={handleCreateRap}>GenZ-ify your lecture</button>
+    </div>
     </div>
   );
 }
