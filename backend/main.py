@@ -9,7 +9,7 @@ from transcribeText import transcribe_audio
 import os
 import io
 
-#from transcription import transcribe_audio
+from transcribeText import transcribe_audio
 load_dotenv()
 
 app = FastAPI()
@@ -28,26 +28,6 @@ client = Client(
     user_id=os.getenv("PLAY_HT_USER_ID"),
     api_key=os.getenv("PLAY_HT_API_KEY"),
 )
-
-@app.post("/transcribe-audio/")
-async def transcribe_audio_endpoint(file: UploadFile = File(...)):
-    try:
-        # Save the uploaded audio file temporarily
-        audio_path = f"./{file.filename}"
-        with open(audio_path, "wb") as audio_file:
-            audio_file.write(await file.read())
-
-        # Call the transcribe_audio function from transcribedText.py
-        transcription = transcribe_audio(audio_path)
-
-        # Clean up the saved audio file
-        os.remove(audio_path)
-
-        # Return the transcription as a JSON response
-        return JSONResponse({"transcription": transcription})
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
 
 def slang_to_audio():
     # Define the text and options
@@ -72,7 +52,7 @@ def slang_to_audio():
     return StreamingResponse(audio_buffer, media_type="audio/mpeg")
 
 @app.post("/generate-audio/")
-async def generate_audio():
-    # Sumedhs func
+async def generate_audio(file: UploadFile = File(...)):
+    text = transcribe_audio(file)
     # Text to slang 
     return slang_to_audio()

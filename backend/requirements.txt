@@ -2,3 +2,4 @@ fastapi
 uvicorn
 pyht
 python-dotenv
+openai-whisper
