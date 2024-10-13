@@ -1,15 +1,13 @@
-from fastapi import FastAPI, File, UploadFile, HTTPException
-from fastapi.responses import JSONResponse
+from fastapi import FastAPI, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pyht import Client
 from pyht.client import TTSOptions
 from dotenv import load_dotenv
-from transcribeText import transcribe_audio
 import os
 import io
 
-
+#from transcription import transcribe_audio
 load_dotenv()
 
 app = FastAPI()
@@ -49,9 +47,7 @@ async def transcribe_audio_endpoint(file: UploadFile = File(...)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-
-@app.post("/generate-audio/")
-async def generate_audio():
+def slang_to_audio():
     # Define the text and options
     text = "So, Kiwan Maeng kicks off the lecture by chatting 'bout the current homework grind,"
     options = TTSOptions(
@@ -60,7 +56,6 @@ async def generate_audio():
         speed=1.0,
         temperature=0.5,
     )
-    
     # Create an in-memory buffer to hold the audio
     audio_buffer = io.BytesIO()
 
@@ -73,3 +68,9 @@ async def generate_audio():
 
     # Send the audio back to the frontend as a streaming response
     return StreamingResponse(audio_buffer, media_type="audio/mpeg")
+
+@app.post("/generate-audio/")
+async def generate_audio():
+    # Sumedhs func
+    # Text to slang 
+    return slang_to_audio()
